@@ -87,21 +87,28 @@ if __name__ == "__main__":
         print(f"{bench} stddev: {out_processed[bench]['stddev']:.6f}")
     for bench in benches:
         if not bench.endswith("_lss"):
-            out_processed[bench]["speedup"] = 1
+            out_processed[bench]["min_speedup"] = 1
+            out_processed[bench]["mean_speedup"] = 1
+            out_processed[bench]["median_speedup"] = 1
         else:
-            out_processed[bench]["speedup"] = out_processed[bench.replace("_lss", "")]["min"] / out_processed[bench]["min"]
-            print(f"{bench} speedup: {out_processed[bench]['speedup']:.2f}")
+            out_processed[bench]["min_speedup"] = out_processed[bench.replace("_lss", "")]["min"] / out_processed[bench]["min"]
+            out_processed[bench]["mean_speedup"] = out_processed[bench.replace("_lss", "")]["mean"] / out_processed[bench]["mean"]
+            out_processed[bench]["median_speedup"] = out_processed[bench.replace("_lss", "")]["median"] / out_processed[bench]["median"]
     with open("out/raw.json", "w") as f:
         f.write(json.dumps(out_raw, indent=4, sort_keys=True, separators=(",", ": ")))
     with open("out/processed.json", "w") as f:
         f.write(json.dumps(out_processed, indent=4, sort_keys=True, separators=(",", ": ")))
     bench_names = [bench.replace("bench_", "") for bench in benches if not bench.endswith("_lss")]
-    speedups = [out_processed[bench]["speedup"] for bench in benches if bench.endswith("_lss")]
+    min_speedups = [out_processed[bench]["min_speedup"] for bench in benches if bench.endswith("_lss")]
+    mean_speedups = [out_processed[bench]["mean_speedup"] for bench in benches if bench.endswith("_lss")]
+    median_speedups = [out_processed[bench]["median_speedup"] for bench in benches if bench.endswith("_lss")]
     bin_sizes = {bench: os.path.getsize(f"bin/{bench}") for bench in benches}
     rel_bin_sizes = []
     for bench in benches:
         if not bench.endswith("_lss"):
             continue
         rel_bin_sizes.append(bin_sizes[bench] / bin_sizes[bench.replace("_lss", "")])
-    plot("speedup_chart", "Speedup due to Lambda Set Specialization", "Speedup Factor", "", speedups, bench_names)
+    plot("min_speedup_chart", "Min Speedup due to Lambda Set Specialization", "Speedup Factor", "", min_speedups, bench_names)
+    plot("mean_speedup_chart", "Mean Speedup due to Lambda Set Specialization", "Speedup Factor", "", mean_speedups, bench_names)
+    plot("median_speedup_chart", "Median Speedup due to Lambda Set Specialization", "Speedup Factor", "", median_speedups, bench_names)
     plot("bin_size_chart", "Binary Sizes after Lambda Set Specialization", "Size Ratio (Lower is Better)", "", rel_bin_sizes, bench_names)
