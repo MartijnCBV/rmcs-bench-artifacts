@@ -23,6 +23,44 @@ def plot(filename, title, xlabel, ylabel, xticks, yticks):
     plt.tight_layout()
     plt.savefig(f"out/{filename}.png")
 
+def plot_boxplot(out_raw, benches):
+    _, ax = plt.subplots(figsize=(12, 8))
+    ax.set_title("Relative Performance (Lower is Better)")
+    ax.set_ylabel("Time Relative to Regular Version")
+    pairs = []
+    for bench in benches:
+        if not bench.endswith("_lss"):
+            pairs.append((bench, bench + "_lss"))
+    data = []
+    labels = []
+    positions = []
+    colors = ['#1a85ff', '#34a853']
+    for idx, (regular, lss) in enumerate(pairs):
+        regular_median = np.median(out_raw[regular])
+        normalized_regular = [t / regular_median for t in out_raw[regular]]
+        normalized_lss = [t / regular_median for t in out_raw[lss]]
+        data.append(normalized_regular)
+        data.append(normalized_lss)
+        labels.append(regular.replace("bench_", ""))
+        labels.append(lss.replace("bench_", ""))
+        positions.append(idx * 3)
+        positions.append(idx * 3 + 1)
+    bp = ax.boxplot(data, positions=positions, patch_artist=True, widths=0.6)
+    for i, box in enumerate(bp['boxes']):
+        box.set(facecolor=colors[i % 2])
+    ax.set_xticks([p + 0.5 for p in positions[::2]])
+    ax.set_xticklabels([labels[i].replace("_lss", "") for i in range(0, len(labels), 2)], rotation=45)
+    ax.axhline(1.0, color='black', linestyle='dotted', alpha=0.7)
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor=colors[0], label='Regular'),
+        Patch(facecolor=colors[1], label='LSS')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right')
+    ax.grid(axis="y", alpha=0.7)
+    plt.tight_layout()
+    plt.savefig("out/normalized_benchmark_boxplot.png")
+
 if __name__ == "__main__":
     import glob, os, time, json
     import subprocess as sp
@@ -112,3 +150,4 @@ if __name__ == "__main__":
     plot("mean_speedup_chart", "Mean Speedup due to Lambda Set Specialization", "Speedup Factor", "", mean_speedups, bench_names)
     plot("median_speedup_chart", "Median Speedup due to Lambda Set Specialization", "Speedup Factor", "", median_speedups, bench_names)
     plot("bin_size_chart", "Binary Sizes after Lambda Set Specialization", "Size Ratio (Lower is Better)", "", rel_bin_sizes, bench_names)
+    plot_boxplot(out_raw, benches)
